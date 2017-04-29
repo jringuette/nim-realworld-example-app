@@ -19,6 +19,7 @@ type
 const
   AUTH_HEADER = "Authorization"
   ID_CLAIM = "id"
+  TOKEN_PART_COUNT = 3
 
 # Module state
 var
@@ -64,7 +65,18 @@ proc extractTokenFromRequest(req: RequestRef): (bool, JWT) =
   if (authHeader.len < 2) or (authHeader[0] != prefix):
     return
 
-  return (true, toJWT(authHeader[1]))
+  let tokenString = authHeader[1]
+
+  # Check if all parts of the JWT are present.
+  # Unfortunately the jwt lib will attempt an illegal storage access
+  # when calling the verify method if the JWT is not complete.
+  if split(tokenString, { '.' }).len != TOKEN_PART_COUNT:
+    return
+
+  try:
+    return (true, toJWT(authHeader[1]))
+  except InvalidToken:
+    return
 
 proc extractUserIdFromToken(token: JWT): (bool, uint64) =
   ## Extracts the user id from the id field of the JWT claims.
