@@ -19,5 +19,19 @@ For the latest version, please check out the `develop` branch.
 
 # Getting started
 
-> npm install, npm start, etc.
+## Setting up nim and nimble
 
+First you need to set up the `nim` compiler and the `nimble` package manager. You can obtain them together from [official Nim site](https://nim-lang.org/).
+
+## Building the project
+
+The project can be built with the `nimble build` command executed from the project's root directory. In addition to the actual building process, `nimble` downloads the dependencies of the project.
+
+For more information on the usage `nimble`, please see [nim-lang/nimble](https://github.com/nim-lang/nimble).
+
+## Running the Conduit backend
+
+There are two options available:
+
+  1. Issue the `nimble build` command and then run the output binary placed in the `build` directory.
+  1. Execute `nimble server` which builds the backend and spins up the server.
