@@ -9,23 +9,11 @@ license       = "MIT"
 
 bin     = @["conduit"]
 binDir  = "build"
+srcDir  = "src"
 skipExt = @["nim"]
 
 # Dependencies
 
-requires "nim >= 0.16.0"
-
-requires "rosencrantz >= 0.3.0"
-
-# Tasks
-
-task server, "Run the Nim Conduit backend":
-  --forceBuild
-  --run
-  --path: "."
-
-  --hints: off
-  --stacktrace: on
-  --linetrace: on
-  
-  setCommand "compile", "conduit.nim"
+requires "nim >= 0.16.0",
+         "rosencrantz >= 0.3.0",
+         "jwt >= 0.0.1"
