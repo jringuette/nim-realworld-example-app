@@ -9,6 +9,7 @@ license       = "MIT"
 
 bin     = @["conduit"]
 binDir  = "build"
+srcDir  = "src"
 skipExt = @["nim"]
 
 # Dependencies
@@ -28,4 +29,4 @@ task server, "Run the Nim Conduit backend":
   --stacktrace: on
   --linetrace: on
 
-  setCommand "compile", "conduit.nim"
+  setCommand "compile", "src/conduit.nim"

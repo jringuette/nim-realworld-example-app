@@ -2,7 +2,7 @@ import asyncdispatch, asynchttpserver
 
 from rosencrantz import serve
 
-from conduit/routes/handler import handlers
+from routes/handler import handlers
 
 
 let server = newAsyncHttpServer();
