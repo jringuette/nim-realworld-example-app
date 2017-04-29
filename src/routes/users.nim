@@ -1,6 +1,7 @@
 import rosencrantz
 
-import ../auth, ../model/user
+import ../model/user
+from ../auth import mandatoryAuth
 
 let
   authentication =
