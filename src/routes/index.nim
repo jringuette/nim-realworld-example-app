@@ -1,14 +1,14 @@
 from rosencrantz import `~`, notFound
 
-from articles import handler
-from profiles import handler
-from users    import handler
-from tags     import handler
+import articles
+import profiles
+import users
+import tags
 
-let notFoundHandler = 
+let notFoundHandler =
   notFound("Page not found")
 
-let handlers* = 
+let handler* =
   articles.handler ~
   profiles.handler ~
   users.handler ~
