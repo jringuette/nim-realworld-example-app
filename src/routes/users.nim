@@ -4,34 +4,26 @@ import ../auth, ../model/user
 
 let
   authentication =
-    post[
-      path("/api/users/login")[
+    post ->
+      path("/api/users/login") ->
         ok("Authentication")
-      ]
-    ]
 
   registration =
-    post[
-      path("/api/users")[
+    post ->
+      path("/api/users") ->
         ok("Registration")
-      ]
-    ]
 
   getCurrentUser =
-    get[
-      path("/api/user")[
+    get ->
+      path("/api/user") ->
         mandatoryAuth do (user: User) -> auto:
           ok("Current user")
-      ]
-    ]
 
   updateUser =
-    put[
-      path("/api/user")[
+    put ->
+      path("/api/user") ->
         mandatoryAuth do (user: User) -> auto:
           ok("Update user")
-      ]
-    ]
 
 let handler* =
   authentication ~
