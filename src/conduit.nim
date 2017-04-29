@@ -1,9 +1,20 @@
-import asyncdispatch, asynchttpserver
+import asyncdispatch, asynchttpserver, httpcore
 
-from rosencrantz import serve
+from rosencrantz import serve, complete
 
 from routes/handler import handlers
+from auth import headerPrefix, jwtSecret, failureHandler
 
+
+# Auth config
+
+headerPrefix("Token")
+
+jwtSecret("secret")
+
+failureHandler(complete(Http401, "Failed to authenticate!"))
+
+# Start server
 
 let server = newAsyncHttpServer();
 

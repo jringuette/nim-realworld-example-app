@@ -1,8 +1,11 @@
 import rosencrantz
 
+import ../auth, ../model/user
+
 let handler* =
   get[
     path("/api/users")[
-      ok("Users")
+      mandatoryAuth do (user: User) -> auto:
+        ok("Success")
     ]
   ]

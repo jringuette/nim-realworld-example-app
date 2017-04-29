@@ -5,3 +5,8 @@ type
     username*: string
     bio*: string
     image*: string
+
+proc findById*(id: uint64): (bool, User) =
+  echo $id
+
+  return (true, nil)
