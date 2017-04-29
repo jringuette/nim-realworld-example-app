@@ -14,3 +14,5 @@ skipExt = @["nim"]
 # Dependencies
 
 requires "nim >= 0.16.0"
+
+requires "rosencrantz >= 0.3.0"
