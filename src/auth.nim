@@ -52,6 +52,23 @@ proc failureHandler*(handler: Handler) =
   ## unauthorized access.
   failHandler = handler
 
+proc issueToken*(userId: int64): string =
+  ## Issues a new JWT with the specified user id as a claim.
+  ## Returns the string representation of the token.
+  var token = toJWT(%*{
+    "header": {
+      "alg": "HS256",
+      "typ": "JWT"
+    },
+    "claims": {
+      "id": userId
+    }
+  })
+
+  sign(token, secret)
+
+  return $token
+
 proc extractTokenFromRequest(req: RequestRef): (bool, JWT) =
   ## Extracts the JWT from the Authorization header.
   ## Returns (true, JWT) upon success, (false, empty JWT) othwerwise.
@@ -80,10 +97,10 @@ proc extractTokenFromRequest(req: RequestRef): (bool, JWT) =
   except InvalidToken:
     return
 
-proc extractUserIdFromToken(token: JWT): (bool, uint64) =
+proc extractUserIdFromToken(token: JWT): (bool, int64) =
   ## Extracts the user id from the id field of the JWT claims.
   ## Returns (true, id) upon success, (false, 0) otherwise.
-  result = (false, 0'u64)
+  result = (false, 0'i64)
 
   if not token.claims.hasKey(ID_CLAIM):
     return
@@ -92,7 +109,7 @@ proc extractUserIdFromToken(token: JWT): (bool, uint64) =
 
   case idClaim.node.kind:
   of JInt:
-    return (true, uint64(idClaim.node.num))
+    return (true, int64(idClaim.node.num))
   else:
     return
 
@@ -121,8 +138,6 @@ proc mandatoryAuth*(p: UserAcceptingHandler): Handler =
     let (success, user) = getRequestingUser(req)
 
     if not success:
-      info("Unauthorized request")
-
       return await failHandler(req, ctx)
 
     let handler = p(user)

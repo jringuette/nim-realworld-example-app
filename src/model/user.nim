@@ -1,10 +1,11 @@
 type
   User* = ref object
-    id*: uint64
+    id*: int64
     email*: string
+    token*: string
     username*: string
     bio*: string
     image*: string
 
-proc findById*(id: uint64): (bool, User) =
+proc findById*(id: int64): (bool, User) =
   return (false, nil)
