@@ -1,4 +1,4 @@
-import asynchttpserver, asyncdispatch, httpcore, strutils, tables, json
+import asynchttpserver, asyncdispatch, httpcore, strutils, tables, json, logging
 
 import rosencrantz, jwt
 
@@ -67,6 +67,8 @@ proc extractTokenFromRequest(req: RequestRef): (bool, JWT) =
 
   let tokenString = authHeader[1]
 
+  debug("Obtained token from request: ", tokenString)
+
   # Check if all parts of the JWT are present.
   # Unfortunately the jwt lib will attempt an illegal storage access
   # when calling the verify method if the JWT is not complete.
@@ -119,6 +121,8 @@ proc mandatoryAuth*(p: UserAcceptingHandler): Handler =
     let (success, user) = getRequestingUser(req)
 
     if not success:
+      info("Unauthorized request")
+
       return await failHandler(req, ctx)
 
     let handler = p(user)
