@@ -1,11 +1,33 @@
 import rosencrantz
 
-import ../auth, ../model/user
+import ../model/user
+from ../auth import mandatoryAuth
+
+let
+  authentication =
+    post ->
+      path("/api/users/login") ->
+        ok("Authentication")
+
+  registration =
+    post ->
+      path("/api/users") ->
+        ok("Registration")
+
+  getCurrentUser =
+    get ->
+      path("/api/user") ->
+        mandatoryAuth do (user: User) -> auto:
+          ok("Current user")
+
+  updateUser =
+    put ->
+      path("/api/user") ->
+        mandatoryAuth do (user: User) -> auto:
+          ok("Update user")
 
 let handler* =
-  get[
-    path("/api/users")[
-      mandatoryAuth do (user: User) -> auto:
-        ok("Success")
-    ]
-  ]
+  authentication ~
+  registration ~
+  getCurrentUser ~
+  updateUser

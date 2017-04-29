@@ -8,4 +8,5 @@ type
     image*: string
 
 proc findById*(id: int64): (bool, User) =
-  return (false, nil)
+  # true makes testing easier for now (especially auth)
+  return (true, nil)

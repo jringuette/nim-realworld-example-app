@@ -1,8 +1,10 @@
-import rosencrantz
+from rosencrantz import `~`
+
+from article/article  import handler
+from article/comment  import handler
+from article/favorite import handler
 
 let handler* =
-  get[
-    path("/api/articles")[
-      ok("Articles")
-    ]
-  ]
+  comment.handler ~
+  favorite.handler ~
+  article.handler

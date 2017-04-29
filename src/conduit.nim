@@ -2,7 +2,7 @@ import asyncdispatch, asynchttpserver, httpcore, logging
 
 from rosencrantz import serve, complete
 
-from routes/handler import handlers
+from routes/index import handler
 from auth import headerPrefix, jwtSecret, failureHandler
 
 # Log config
@@ -27,4 +27,4 @@ failureHandler(complete(Http401, "Failed to authenticate!"))
 
 let server = newAsyncHttpServer();
 
-waitFor server.serve(Port(8080), handlers)
+waitFor server.serve(Port(8080), handler)
