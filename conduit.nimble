@@ -17,16 +17,3 @@ skipExt = @["nim"]
 requires "nim >= 0.16.0",
          "rosencrantz >= 0.3.0",
          "jwt >= 0.0.1"
-
-# Tasks
-
-task server, "Run the Nim Conduit backend":
-  --forceBuild
-  --run
-  --path: "."
-
-  --hints: off
-  --stacktrace: on
-  --linetrace: on
-
-  setCommand "compile", "src/conduit.nim"
