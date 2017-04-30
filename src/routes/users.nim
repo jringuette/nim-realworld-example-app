@@ -1,4 +1,4 @@
-import asyncdispatch, json, httpcore, tables
+import asyncdispatch, json, httpcore, tables, pegs
 
 import rosencrantz
 
@@ -8,6 +8,10 @@ from ../service/authservice import issueToken
 from filter/auth import mandatoryAuth
 from filter/terminal import unprocessableEntity
 from filter/validation import validateBody
+
+let
+  emailPattern    = peg"""^\S+@\S+\.\S+$"""
+  usernamePattern = peg"""^[a-zA-Z0-9]+$"""
 
 proc loggedInUser(user: User): Handler =
   let resultJson = %*{
@@ -29,6 +33,28 @@ proc authValidator(body: JsonNode): Table[string, string] {.procvar.} =
 
   if not body["user"].hasKey("email"):
     result.add("email", "can't be blank")
+  if not body["user"].hasKey("password"):
+    result.add("password", "can't be blank")
+
+# A nice JSON validator framework should be written instead of
+# this horrible code.
+proc registerValidator(body: JsonNode): Table[string, string] {.procvar.} =
+  result = initTable[string, string]()
+
+  if not body.hasKey("user"):
+    result.add("user", "missing field")
+    return
+
+  if not body["user"].hasKey("email"):
+    result.add("email", "can't be blank")
+  elif not (body["user"]["email"].str =~ emailPattern):
+    result.add("email", "is invalid")
+
+  if not body["user"].hasKey("username"):
+    result.add("username", "can't be blank")
+  elif not (body["user"]["username"].str =~ usernamePattern):
+    result.add("username", "is invalid")
+
   if not body["user"].hasKey("password"):
     result.add("password", "can't be blank")
 
@@ -55,7 +81,15 @@ let
   registration =
     post ->
       path("/api/users") ->
-        ok("Registration")
+        jsonBody do (body: JsonNode) -> auto:
+          validateBody(registerValidator, body) do -> auto:
+            scopeAsync do:
+              let
+                email = body["user"]["email"].str
+                username = body["user"]["username"].str
+                password = body["user"]["password"].str
+
+              return ok("Registration")
 
   getCurrentUser =
     get ->

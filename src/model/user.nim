@@ -38,6 +38,11 @@ converter toUser(bs: Bson): User =
     for i in 0..<bs["favorites"].len:
       result.favorites.add(bs["favorites"][i])
 
+proc initUser*(): User =
+  result.new
+  result.following = @[]
+  result.favorites = @[]
+
 proc findById*(id: Oid): Future[(bool, User)] {.async.} =
   # find().one() fails if there are no results
   let users: seq[Bson] = await db[USERS].find(%*{ "_id": id }).all()
