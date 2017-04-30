@@ -38,6 +38,19 @@ converter toUser(bs: Bson): User =
     for i in 0..<bs["favorites"].len:
       result.favorites.add(bs["favorites"][i])
 
+converter toBson(user: User): Bson =
+  %*{
+    "_id": user.id,
+    "email": user.email,
+    "hash": user.hash,
+    "salt": user.salt,
+    "username": user.username,
+    "bio": user.bio,
+    "image": user.image,
+    "following": user.following,
+    "favorites": user.favorites
+  }
+
 proc initUser*(): User =
   result.new
   result.following = @[]
@@ -60,3 +73,10 @@ proc findByEmail*(email: string): Future[(bool, User)] {.async.} =
     return (false, nil)
   else:
     return (true, toUser(users[0]))
+
+proc insert*(user: User): Future[User] {.async.} =
+  user.id = genOid()
+
+  yield db[USERS].insert(%*user)
+
+  return user

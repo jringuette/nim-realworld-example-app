@@ -4,7 +4,7 @@ import nre except get
 import rosencrantz
 
 from ../model/user import User
-from ../service/userservice import login
+from ../service/userservice import login, register
 from ../service/authservice import issueToken
 from filter/auth import mandatoryAuth
 from filter/terminal import unprocessableEntity
@@ -90,7 +90,9 @@ let
                 username = body["user"]["username"].str
                 password = body["user"]["password"].str
 
-              return ok("Registration")
+              let user = await register(email, username, password)
+
+              return loggedInUser(user)
 
   getCurrentUser =
     get ->

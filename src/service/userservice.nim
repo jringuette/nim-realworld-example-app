@@ -1,8 +1,8 @@
 import asyncdispatch, oids
 
-from bcrypt import hash, compare
+from bcrypt import hash, compare, genSalt
 
-from ../model/user import User, findByEmail, findById
+from ../model/user import User, findByEmail, findById, insert, initUser
 
 proc checkPassword(receivedPassword, storedHash, salt: string): bool =
   let hashedPw = hash(receivedPassword, salt)
@@ -19,3 +19,13 @@ proc login*(email, password: string): Future[(bool, User)] {.async.} =
 
 proc getUserById*(id: Oid): Future[(bool, User)] =
   return findById(id)
+
+proc register*(email, username, password: string): Future[User] =
+  let user = initUser()
+
+  user.email = email
+  user.username = username
+  user.salt = genSalt(10)
+  user.hash = hash(password, user.salt)
+
+  return insert(user)
