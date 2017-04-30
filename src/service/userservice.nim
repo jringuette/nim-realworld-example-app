@@ -1,4 +1,4 @@
-import asyncdispatch, oids
+import asyncdispatch, oids, options
 
 from bcrypt import hash, compare, genSalt
 import sam
@@ -14,6 +14,8 @@ type
     bio*: string
     image*: string
 
+  UnmatchingPasswordError* = object of Exception
+
 proc readFromJson*(s: string, t: typedesc[UpdateUser]): UpdateUser =
   result.new
 
@@ -24,15 +26,23 @@ proc checkPassword(receivedPassword, storedHash, salt: string): bool =
 
   compare(hashedPw, storedHash)
 
-proc login*(email, password: string): Future[(bool, User)] {.async.} =
-  let (found, user) = await findByEmail(email)
+proc login*(email, password: string): Future[User] {.async.} =
+  let userFut = findByEmail(email)
 
-  if (not found) or (not checkPassword(password, user.hash, user.salt)):
-    return (false, nil)
+  yield userFut
+
+  if (userFut.failed):
+    return await userFut
+  elif (not checkPassword(password, userFut.read().hash, userFut.read().salt)):
+    let resultFut = newFuture[User]()
+
+    resultFut.fail(newException(UnmatchingPasswordError, "Passwords do not match!"))
+
+    return await resultFut
   else:
-    return (true, user)
+    return await userFut
 
-proc getById*(id: Oid): Future[(bool, User)] =
+proc getById*(id: Oid): Future[User] =
   return findById(id)
 
 proc generatePassword(password: string): (string, string) =

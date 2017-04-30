@@ -1,9 +1,15 @@
-import asynchttpserver, asyncdispatch, httpcore, strutils, tables, json, oids
+import asynchttpserver, asyncdispatch, httpcore, strutils, tables, json, oids, options
 
 import jwt
 
 from ../model/user import User
 from userservice import getById
+
+
+type
+  AuthenticationFailedError* = object of Exception
+
+  InvalidUserIdError* = object of Exception
 
 const
   ID_CLAIM = "id"
@@ -38,10 +44,10 @@ proc issueToken*(userId: Oid): string =
 
   return $token
 
-proc extractUserIdFromToken(token: JWT): (bool, string) =
+proc extractUserIdFromToken(token: JWT): Option[string] =
   ## Extracts the user id from the id field of the JWT claims.
   ## Returns (true, id) upon success, (false, 0) otherwise.
-  result = (false, nil)
+  result = none(string)
 
   if not token.claims.hasKey(ID_CLAIM):
     return
@@ -50,12 +56,12 @@ proc extractUserIdFromToken(token: JWT): (bool, string) =
 
   case idClaim.node.kind:
   of JString:
-    return (true, idClaim.node.str)
+    return some(idClaim.node.str)
   else:
     return
 
-proc verifyToken(tokenString: string): (bool, JWT) =
-  result = (false, JWT())
+proc verifyToken(tokenString: string): Option[JWT] =
+  result = none(JWT)
 
   try:
     let token = toJWT(tokenString)
@@ -63,22 +69,27 @@ proc verifyToken(tokenString: string): (bool, JWT) =
     if not token.verify(secret):
       return
     else:
-      return (true, token)
+      return some(token)
   except:
     return
 
-proc authenticateByToken*(tokenString: string): Future[(bool, User)] =
-  result = newFuture[(bool, User)]()
-  result.complete((false, nil))
+proc authenticateByToken*(tokenString: string): Future[User] =
+  let tokenOpt = verifyToken(tokenString)
 
-  let (verified, token) = verifyToken(tokenString)
+  if tokenOpt.isNone():
+    result = newFuture[User]()
 
-  if not verified:
+    result.fail(newException(AuthenticationFailedError, "Token could not be verified!"))
+
     return
 
-  let (valid, id) = extractUserIdFromToken(token)
+  let idOpt = extractUserIdFromToken(tokenOpt.unsafeGet())
 
-  if not valid:
+  if idOpt.isNone:
+    result = newFuture[User]()
+
+    result.fail(newException(InvalidUserIdError, "Malformed token claim!"))
+
     return
 
-  return getById(parseOid(id))
+  return getById(parseOid(idOpt.unsafeGet()))

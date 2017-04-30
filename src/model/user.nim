@@ -1,4 +1,4 @@
-import asyncdispatch, oids
+import asyncdispatch, oids, options
 
 import database, nimongo.bson
 
@@ -13,6 +13,8 @@ type
     image*: string
     following*: seq[Oid]
     favorites*: seq[Oid]
+
+  UserNotFoundError* = object of Exception
 
 const
   USERS = "users"
@@ -57,23 +59,34 @@ proc initUser*(): User =
   result.following = @[]
   result.favorites = @[]
 
-proc findById*(id: Oid): Future[(bool, User)] {.async.} =
+proc findById*(id: Oid): Future[User] {.async.} =
   # find().one() fails if there are no results
-  let users: seq[Bson] = await db[USERS].find(%*{ "_id": id }).all()
+  var usersFut = db[USERS].find(%*{ "_id": id }).all()
 
-  if users.len == 0:
-    return (false, nil)
+  yield usersFut
+
+  let resultFut = newFuture[User]()
+
+  if (usersFut.failed()) or (usersFut.read().len == 0):
+    resultFut.fail(newException(UserNotFoundError, "User not found"))
   else:
-    # the converter does not work when used in a tuple
-    return (true, toUser(users[0]))
+    resultFut.complete(toUser(usersFut.read()[0]))
 
-proc findByEmail*(email: string): Future[(bool, User)] {.async.} =
-  let users: seq[Bson] = await db[USERS].find(%*{ "email": email }).all()
+  return await resultFut
 
-  if users.len == 0:
-    return (false, nil)
+proc findByEmail*(email: string): Future[User] {.async.} =
+  let usersFut = db[USERS].find(%*{ "email": email }).all()
+
+  yield usersFut
+
+  let resultFut = newFuture[User]()
+
+  if (usersFut.failed()) or (usersFut.read().len == 0):
+    resultFut.fail(newException(UserNotFoundError, "User not found"))
   else:
-    return (true, toUser(users[0]))
+    resultFut.complete(toUser(usersFut.read()[0]))
+
+  return await resultFut
 
 proc insert*(user: User): Future[User] {.async.} =
   if user.id == EMPTY_OID:

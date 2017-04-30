@@ -1,4 +1,4 @@
-import asynchttpserver, asyncdispatch, httpcore, strutils, logging
+import asynchttpserver, asyncdispatch, httpcore, strutils, logging, options
 
 import rosencrantz
 
@@ -10,6 +10,8 @@ from ../../service/authservice import authenticateByToken
 # It's a good practice to use named types where it makes sense.
 type
   UserAcceptingHandler* = proc(user: User): Handler
+
+  NoTokenFoundError* = object of Exception
 
 # Just a type alias to decrease the noise.
 type
@@ -42,10 +44,10 @@ proc failureHandler*(handler: Handler) =
   ## unauthorized access.
   failHandler = handler
 
-proc extractTokenFromRequest(req: RequestRef): (bool, string) =
+proc extractTokenFromRequest(req: RequestRef): Option[string] =
   ## Extracts the JWT from the Authorization header.
   ## Returns (true, JWT) upon success, (false, empty JWT) othwerwise.
-  result = (false, nil)
+  result = none(string)
 
   if not req.headers.hasKey(AUTH_HEADER):
     return
@@ -65,33 +67,35 @@ proc extractTokenFromRequest(req: RequestRef): (bool, string) =
   if split(tokenString, { '.' }).len != TOKEN_PART_COUNT:
     return
 
-  return (true, authHeader[1])
+  return some(authHeader[1])
 
-proc getRequestingUser(req: RequestRef): Future[(bool, User)] =
+proc getRequestingUser(req: RequestRef): Future[User] =
   ## Gets the user associated with the request.
   ## Returns (true, User) upon success, (false, nil) otherwise
-  let (success, token) = extractTokenFromRequest(req)
+  let tokenOpt = extractTokenFromRequest(req)
 
-  if not success:
-    result = newFuture[(bool, User)]()
+  if tokenOpt.isNone:
+    result = newFuture[User]()
 
-    result.complete((false, nil))
+    result.fail(newException(NoTokenFoundError, "No token found in request!"))
 
     return
 
-  return authenticateByToken(token)
+  return authenticateByToken(tokenOpt.unsafeGet())
 
 proc mandatoryAuth*(p: UserAcceptingHandler): Handler =
   ## Expresses mandatory authentication.
   ## If an unauthorized request occurs, the failure handler will be called.
   ## Otherwise a correct User instance is passed to p.
   proc inner(req: RequestRef, ctx: Context): Future[Context] {.async.} =
-    let (success, user) = await getRequestingUser(req)
+    let userFut = getRequestingUser(req)
 
-    if not success:
+    yield userFut
+
+    if userFut.failed():
       return await failHandler(req, ctx)
 
-    let handler = p(user)
+    let handler = p(userFut.read())
 
     return await handler(req, ctx)
 
@@ -101,7 +105,15 @@ proc optionalAuth*(p: UserAcceptingHandler): Handler =
   ## Expresses optional authentication.
   ## p receives a nil User if the authentication failed.
   proc inner(req: RequestRef, ctx: Context): Future[Context] {.async.} =
-    let (_, user) = await getRequestingUser(req)
+    let userFut = getRequestingUser(req)
+
+    yield userFut
+
+    let user =
+      if userFut.failed():
+        nil
+      else:
+        userFut.read()
 
     let handler = p(user)
 

@@ -86,14 +86,16 @@ let
                 email = body{"user", "email"}.str
                 password = body{"user", "password"}.str
 
-              let (success, user) = await login(email, password)
+              let userFut = login(email, password)
 
-              if not success:
+              yield userFut
+
+              if userFut.failed():
                 let errors = {"email or password" : "is invalid"}.toTable()
 
                 return unprocessableEntity(errors)
               else:
-                return loggedInUser(user)
+                return loggedInUser(userFut.read())
 
   registration =
     post ->
@@ -125,7 +127,7 @@ let
               scopeAsync do:
                 let barebones = readFromJson($body["user"], UpdateUser)
 
-                let updated = await updateUser(barebones, user)
+                let updated = await update(barebones, user)
 
                 return loggedInUser(updated)
 
