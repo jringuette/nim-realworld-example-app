@@ -10,13 +10,13 @@ var
 var
   mongoInstance: AsyncMongo
 
-proc connect*(host: string, port: uint16): Future[bool] {.async.} =
+proc connect*(host: string, port: uint16, dbName: string): Future[bool] {.async.} =
   mongoInstance = newAsyncMongo(host, port)
 
   let connected = await mongoInstance.connect()
 
   if connected:
-    db = mongoInstance["conduit"]
+    db = mongoInstance[dbName]
 
     result = true
 

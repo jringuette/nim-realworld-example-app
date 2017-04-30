@@ -26,7 +26,7 @@ failureHandler(complete(Http401, "Failed to authenticate!"))
 
 # DB setup
 
-let connected = waitFor connect("127.0.0.1", 27017)
+let connected = waitFor connect("127.0.0.1", 27017, "conduit")
 
 if connected:
   info("Succesfully connected to the database")
