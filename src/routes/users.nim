@@ -61,7 +61,7 @@ let
     get ->
       path("/api/user") ->
         mandatoryAuth do (user: User) -> auto:
-          ok("Current user")
+          return loggedInUser(user)
 
   updateUser =
     put ->
