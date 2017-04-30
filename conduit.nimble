@@ -17,4 +17,5 @@ skipExt = @["nim"]
 requires "nim >= 0.16.0",
          "rosencrantz >= 0.3.0",
          "jwt >= 0.0.1",
-         "nimongo >= 0.1"
+         "nimongo >= 0.1",
+         "bcrypt >= 0.2.1"
