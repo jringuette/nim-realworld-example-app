@@ -1,4 +1,5 @@
-import asyncdispatch, json, httpcore, tables, pegs
+import asyncdispatch, json, httpcore, tables
+import nre except get
 
 import rosencrantz
 
@@ -10,8 +11,8 @@ from filter/terminal import unprocessableEntity
 from filter/validation import validateBody
 
 let
-  emailPattern    = peg"""^\S+@\S+\.\S+$"""
-  usernamePattern = peg"""^[a-zA-Z0-9]+$"""
+  emailPattern    = re"""^\S+?\@\S+?\.\S+$"""
+  usernamePattern = re"""^[a-zA-Z0-9]+$"""
 
 proc loggedInUser(user: User): Handler =
   let resultJson = %*{
@@ -47,12 +48,12 @@ proc registerValidator(body: JsonNode): Table[string, string] {.procvar.} =
 
   if not body["user"].hasKey("email"):
     result.add("email", "can't be blank")
-  elif not (body["user"]["email"].str =~ emailPattern):
+  elif not contains(body["user"]["email"].str, emailPattern):
     result.add("email", "is invalid")
 
   if not body["user"].hasKey("username"):
     result.add("username", "can't be blank")
-  elif not (body["user"]["username"].str =~ usernamePattern):
+  elif not contains(body["user"]["username"].str, usernamePattern):
     result.add("username", "is invalid")
 
   if not body["user"].hasKey("password"):
