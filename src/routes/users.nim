@@ -2,8 +2,21 @@ import asyncdispatch, json, httpcore, tables
 
 import rosencrantz
 
-import ../model/user, ../service/userservice, customhandler
-from ../auth import mandatoryAuth
+from ../model/user import User
+from ../service/userservice import login
+from ../auth import mandatoryAuth, issueToken
+from customhandler import unprocessableEntity
+
+proc loggedInUser(user: User): Handler =
+  let resultJson = %*{
+    "email": user.email,
+    "token": issueToken(user.id),
+    "username": user.username,
+    "image": user.image,
+    "bio": user.bio
+  }
+
+  ok(resultJson)
 
 let
   authentication =
@@ -22,7 +35,7 @@ let
 
               return unprocessableEntity(errors)
             else:
-              return ok(user.email)
+              return loggedInUser(user)
 
   registration =
     post ->

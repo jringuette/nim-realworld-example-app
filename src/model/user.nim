@@ -8,7 +8,6 @@ type
     email*: string
     hash*: string
     salt*: string
-    token*: string
     username*: string
     bio*: string
     image*: string
@@ -19,8 +18,6 @@ const
   USERS = "users"
 
 converter toUser(bs: Bson): User =
-  echo "converting"
-
   if bs == nil:
     result = nil
   else:
@@ -35,10 +32,10 @@ converter toUser(bs: Bson): User =
     result.following = @[]
     result.favorites = @[]
 
-    for i in 0..bs["following"].len:
+    for i in 0..<bs["following"].len:
       result.following.add(bs["following"][i])
 
-    for i in 0..bs["favorites"].len:
+    for i in 0..<bs["favorites"].len:
       result.favorites.add(bs["favorites"][i])
 
 proc findById*(id: Oid): Future[(bool, User)] {.async.} =

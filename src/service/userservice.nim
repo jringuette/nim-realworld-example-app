@@ -1,8 +1,8 @@
 import asyncdispatch
 
-import bcrypt
+from bcrypt import hash, compare
 
-import ../model/user
+from ../model/user import User, findByEmail
 
 proc checkPassword(receivedPassword, storedHash, salt: string): bool =
   let hashedPw = hash(receivedPassword, salt)

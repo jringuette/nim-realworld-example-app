@@ -52,7 +52,7 @@ proc failureHandler*(handler: Handler) =
   ## unauthorized access.
   failHandler = handler
 
-proc issueToken*(userId: int64): string =
+proc issueToken*(userId: Oid): string =
   ## Issues a new JWT with the specified user id as a claim.
   ## Returns the string representation of the token.
   var token = toJWT(%*{
@@ -61,7 +61,7 @@ proc issueToken*(userId: int64): string =
       "typ": "JWT"
     },
     "claims": {
-      "id": userId
+      "id": $userId
     }
   })
 
