@@ -3,8 +3,10 @@ import asyncdispatch, asynchttpserver, httpcore, logging
 from rosencrantz import serve, complete
 
 from routes/index import handler
-from auth import headerPrefix, jwtSecret, failureHandler
-from model/db import connect
+from routes/filter/auth import headerPrefix, failureHandler
+from service/authservice import jwtSecret
+from model/database import connect
+
 
 # Log config
 
@@ -26,7 +28,7 @@ failureHandler(complete(Http401, "Failed to authenticate!"))
 
 # DB setup
 
-let connected = waitFor connect("127.0.0.1", 27017)
+let connected = waitFor connect("127.0.0.1", 27017, "conduit")
 
 if connected:
   info("Succesfully connected to the database")

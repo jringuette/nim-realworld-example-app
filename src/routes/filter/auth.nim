@@ -1,14 +1,17 @@
-import asynchttpserver, asyncdispatch, httpcore, strutils, tables, json, logging
+import asynchttpserver, asyncdispatch, httpcore, strutils, logging, options
 
-import rosencrantz, jwt
+import rosencrantz
 
-import model/user
+from ../../model/user import User
+from ../../service/authservice import authenticateByToken
 
 
 # Imported types
 # It's a good practice to use named types where it makes sense.
 type
   UserAcceptingHandler* = proc(user: User): Handler
+
+  NoTokenFoundError* = object of Exception
 
 # Just a type alias to decrease the noise.
 type
@@ -18,15 +21,12 @@ type
 # values are the same across the module.
 const
   AUTH_HEADER = "Authorization"
-  ID_CLAIM = "id"
   TOKEN_PART_COUNT = 3
 
 # Module state
 var
   # The prefix before the token in the Authorization header.
   prefix: string
-  # The secret key to sign and verify JWTs.
-  secret: string
   # A handler that will be executed upon unauthorized access.
   failHandler: Handler
 
@@ -39,40 +39,15 @@ proc headerPrefix*(newPrefix: string) =
   ## Sets the current header prefix.
   prefix = newPrefix
 
-proc jwtSecret*(): string =
-  ## Gets the current JWT secret key.
-  secret
-
-proc jwtSecret*(newSecret: string) =
-  ## Sets the current JWT secret key.
-  secret = newSecret
-
 proc failureHandler*(handler: Handler) =
   ## Sets the failure handler that will be executed upon
   ## unauthorized access.
   failHandler = handler
 
-proc issueToken*(userId: int64): string =
-  ## Issues a new JWT with the specified user id as a claim.
-  ## Returns the string representation of the token.
-  var token = toJWT(%*{
-    "header": {
-      "alg": "HS256",
-      "typ": "JWT"
-    },
-    "claims": {
-      "id": userId
-    }
-  })
-
-  sign(token, secret)
-
-  return $token
-
-proc extractTokenFromRequest(req: RequestRef): (bool, JWT) =
+proc extractTokenFromRequest(req: RequestRef): Option[string] =
   ## Extracts the JWT from the Authorization header.
-  ## Returns (true, JWT) upon success, (false, empty JWT) othwerwise.
-  result = (false, JWT())
+  ## Returns none() upon success, some(JWT) othwerwise.
+  result = none(string)
 
   if not req.headers.hasKey(AUTH_HEADER):
     return
@@ -92,55 +67,36 @@ proc extractTokenFromRequest(req: RequestRef): (bool, JWT) =
   if split(tokenString, { '.' }).len != TOKEN_PART_COUNT:
     return
 
-  try:
-    return (true, toJWT(authHeader[1]))
-  except InvalidToken:
-    return
+  return some(authHeader[1])
 
-proc extractUserIdFromToken(token: JWT): (bool, int64) =
-  ## Extracts the user id from the id field of the JWT claims.
-  ## Returns (true, id) upon success, (false, 0) otherwise.
-  result = (false, 0'i64)
-
-  if not token.claims.hasKey(ID_CLAIM):
-    return
-
-  let idClaim = token.claims[ID_CLAIM]
-
-  case idClaim.node.kind:
-  of JInt:
-    return (true, int64(idClaim.node.num))
-  else:
-    return
-
-proc getRequestingUser(req: RequestRef): (bool, User) =
+proc getRequestingUser(req: RequestRef): Future[User] =
   ## Gets the user associated with the request.
-  ## Returns (true, User) upon success, (false, nil) otherwise
-  result = (false, nil)
+  ## Returns a completed Future upon success, fails otherwise with
+  ## NoTokenFoundError.
+  let tokenOpt = extractTokenFromRequest(req)
 
-  let (success, token) = extractTokenFromRequest(req)
+  if tokenOpt.isNone:
+    result = newFuture[User]()
 
-  if (not success) or (not token.verify(secret)):
+    result.fail(newException(NoTokenFoundError, "No token found in request!"))
+
     return
 
-  let (succ, id) = extractUserIdFromToken(token)
-
-  if not succ:
-    return
-
-  return findById(id)
+  return authenticateByToken(tokenOpt.unsafeGet())
 
 proc mandatoryAuth*(p: UserAcceptingHandler): Handler =
   ## Expresses mandatory authentication.
   ## If an unauthorized request occurs, the failure handler will be called.
   ## Otherwise a correct User instance is passed to p.
   proc inner(req: RequestRef, ctx: Context): Future[Context] {.async.} =
-    let (success, user) = getRequestingUser(req)
+    let userFut = getRequestingUser(req)
 
-    if not success:
+    yield userFut
+
+    if userFut.failed():
       return await failHandler(req, ctx)
 
-    let handler = p(user)
+    let handler = p(userFut.read())
 
     return await handler(req, ctx)
 
@@ -150,7 +106,15 @@ proc optionalAuth*(p: UserAcceptingHandler): Handler =
   ## Expresses optional authentication.
   ## p receives a nil User if the authentication failed.
   proc inner(req: RequestRef, ctx: Context): Future[Context] {.async.} =
-    let (_, user) = getRequestingUser(req)
+    let userFut = getRequestingUser(req)
+
+    yield userFut
+
+    let user =
+      if userFut.failed():
+        nil
+      else:
+        userFut.read()
 
     let handler = p(user)
 
