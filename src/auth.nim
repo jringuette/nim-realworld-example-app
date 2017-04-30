@@ -1,4 +1,4 @@
-import asynchttpserver, asyncdispatch, httpcore, strutils, tables, json, logging
+import asynchttpserver, asyncdispatch, httpcore, strutils, tables, json, logging, oids
 
 import rosencrantz, jwt
 
@@ -97,10 +97,10 @@ proc extractTokenFromRequest(req: RequestRef): (bool, JWT) =
   except InvalidToken:
     return
 
-proc extractUserIdFromToken(token: JWT): (bool, int64) =
+proc extractUserIdFromToken(token: JWT): (bool, string) =
   ## Extracts the user id from the id field of the JWT claims.
   ## Returns (true, id) upon success, (false, 0) otherwise.
-  result = (false, 0'i64)
+  result = (false, nil)
 
   if not token.claims.hasKey(ID_CLAIM):
     return
@@ -109,14 +109,14 @@ proc extractUserIdFromToken(token: JWT): (bool, int64) =
 
   case idClaim.node.kind:
   of JInt:
-    return (true, int64(idClaim.node.num))
+    return (true, idClaim.node.str)
   else:
     return
 
-proc getRequestingUser(req: RequestRef): (bool, User) =
+proc getRequestingUser(req: RequestRef): Future[(bool, User)] =
   ## Gets the user associated with the request.
   ## Returns (true, User) upon success, (false, nil) otherwise
-  result = (false, nil)
+  complete(result, (false, nil))
 
   let (success, token) = extractTokenFromRequest(req)
 
@@ -128,14 +128,14 @@ proc getRequestingUser(req: RequestRef): (bool, User) =
   if not succ:
     return
 
-  return findById(id)
+  return findById(parseOid(id))
 
 proc mandatoryAuth*(p: UserAcceptingHandler): Handler =
   ## Expresses mandatory authentication.
   ## If an unauthorized request occurs, the failure handler will be called.
   ## Otherwise a correct User instance is passed to p.
   proc inner(req: RequestRef, ctx: Context): Future[Context] {.async.} =
-    let (success, user) = getRequestingUser(req)
+    let (success, user) = await getRequestingUser(req)
 
     if not success:
       return await failHandler(req, ctx)
@@ -150,7 +150,7 @@ proc optionalAuth*(p: UserAcceptingHandler): Handler =
   ## Expresses optional authentication.
   ## p receives a nil User if the authentication failed.
   proc inner(req: RequestRef, ctx: Context): Future[Context] {.async.} =
-    let (_, user) = getRequestingUser(req)
+    let (_, user) = await getRequestingUser(req)
 
     let handler = p(user)
 
