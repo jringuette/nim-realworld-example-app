@@ -16,6 +16,7 @@ type
 
 const
   USERS = "users"
+  EMPTY_OID = Oid()
 
 converter toUser(bs: Bson): User =
   if bs == nil:
@@ -75,8 +76,14 @@ proc findByEmail*(email: string): Future[(bool, User)] {.async.} =
     return (true, toUser(users[0]))
 
 proc insert*(user: User): Future[User] {.async.} =
-  user.id = genOid()
+  if user.id == EMPTY_OID:
+    user.id = genOid()
 
   yield db[USERS].insert(%*user)
+
+  return user
+
+proc update*(user: User): Future[User] {.async.} =
+  yield db[USERS].update(%*{ "_id": user.id }, %*user, multi = false, upsert = false)
 
   return user

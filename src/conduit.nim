@@ -7,6 +7,7 @@ from routes/filter/auth import headerPrefix, failureHandler
 from service/authservice import jwtSecret
 from model/database import connect
 
+
 # Log config
 
 # Passing named arguments so it's much more readable
