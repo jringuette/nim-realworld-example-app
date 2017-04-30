@@ -9,7 +9,7 @@ import tables, strtabs
 import rosencrantz
 
 import ../../model/user
-from ../../auth import mandatoryAuth, optionalAuth
+from ../../service/auth import mandatoryAuth, optionalAuth
 
 
 let

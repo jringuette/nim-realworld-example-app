@@ -4,7 +4,7 @@ import rosencrantz
 
 from ../model/user import User
 from ../service/userservice import login
-from ../auth import mandatoryAuth, issueToken
+from ../service/auth import mandatoryAuth, issueToken
 from customhandler import unprocessableEntity
 
 proc loggedInUser(user: User): Handler =

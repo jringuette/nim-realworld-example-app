@@ -1,8 +1,8 @@
-import asyncdispatch
+import asyncdispatch, oids
 
 from bcrypt import hash, compare
 
-from ../model/user import User, findByEmail
+from ../model/user import User, findByEmail, findById
 
 proc checkPassword(receivedPassword, storedHash, salt: string): bool =
   let hashedPw = hash(receivedPassword, salt)
@@ -16,3 +16,6 @@ proc login*(email, password: string): Future[(bool, User)] {.async.} =
     return (false, nil)
   else:
     return (true, user)
+
+proc getUserById*(id: Oid): Future[(bool, User)] =
+  return findById(id)

@@ -2,7 +2,7 @@ import asynchttpserver, asyncdispatch, httpcore, strutils, tables, json, logging
 
 import rosencrantz, jwt
 
-import model/user
+import ../model/user
 
 
 # Imported types
