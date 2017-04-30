@@ -2,7 +2,7 @@ import asynchttpserver, asyncdispatch, tables, json
 
 import rosencrantz
 
-import customhandler
+import terminal
 
 type
   JsonValidator* = proc(body: JsonNode): Table[string, string]

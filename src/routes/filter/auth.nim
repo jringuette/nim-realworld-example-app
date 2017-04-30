@@ -1,8 +1,9 @@
-import asynchttpserver, asyncdispatch, httpcore, strutils, tables, json, logging, oids
+import asynchttpserver, asyncdispatch, httpcore, strutils, logging
 
-import rosencrantz, jwt
+import rosencrantz
 
-import ../model/user
+from ../../model/user import User
+from ../../service/authservice import authenticateByToken
 
 
 # Imported types
@@ -18,15 +19,12 @@ type
 # values are the same across the module.
 const
   AUTH_HEADER = "Authorization"
-  ID_CLAIM = "id"
   TOKEN_PART_COUNT = 3
 
 # Module state
 var
   # The prefix before the token in the Authorization header.
   prefix: string
-  # The secret key to sign and verify JWTs.
-  secret: string
   # A handler that will be executed upon unauthorized access.
   failHandler: Handler
 
@@ -39,40 +37,15 @@ proc headerPrefix*(newPrefix: string) =
   ## Sets the current header prefix.
   prefix = newPrefix
 
-proc jwtSecret*(): string =
-  ## Gets the current JWT secret key.
-  secret
-
-proc jwtSecret*(newSecret: string) =
-  ## Sets the current JWT secret key.
-  secret = newSecret
-
 proc failureHandler*(handler: Handler) =
   ## Sets the failure handler that will be executed upon
   ## unauthorized access.
   failHandler = handler
 
-proc issueToken*(userId: Oid): string =
-  ## Issues a new JWT with the specified user id as a claim.
-  ## Returns the string representation of the token.
-  var token = toJWT(%*{
-    "header": {
-      "alg": "HS256",
-      "typ": "JWT"
-    },
-    "claims": {
-      "id": $userId
-    }
-  })
-
-  sign(token, secret)
-
-  return $token
-
-proc extractTokenFromRequest(req: RequestRef): (bool, JWT) =
+proc extractTokenFromRequest(req: RequestRef): (bool, string) =
   ## Extracts the JWT from the Authorization header.
   ## Returns (true, JWT) upon success, (false, empty JWT) othwerwise.
-  result = (false, JWT())
+  result = (false, nil)
 
   if not req.headers.hasKey(AUTH_HEADER):
     return
@@ -92,43 +65,21 @@ proc extractTokenFromRequest(req: RequestRef): (bool, JWT) =
   if split(tokenString, { '.' }).len != TOKEN_PART_COUNT:
     return
 
-  try:
-    return (true, toJWT(authHeader[1]))
-  except InvalidToken:
-    return
-
-proc extractUserIdFromToken(token: JWT): (bool, string) =
-  ## Extracts the user id from the id field of the JWT claims.
-  ## Returns (true, id) upon success, (false, 0) otherwise.
-  result = (false, nil)
-
-  if not token.claims.hasKey(ID_CLAIM):
-    return
-
-  let idClaim = token.claims[ID_CLAIM]
-
-  case idClaim.node.kind:
-  of JInt:
-    return (true, idClaim.node.str)
-  else:
-    return
+  return (true, authHeader[1])
 
 proc getRequestingUser(req: RequestRef): Future[(bool, User)] =
   ## Gets the user associated with the request.
   ## Returns (true, User) upon success, (false, nil) otherwise
-  complete(result, (false, nil))
-
   let (success, token) = extractTokenFromRequest(req)
 
-  if (not success) or (not token.verify(secret)):
+  if not success:
+    result = newFuture[(bool, User)]()
+
+    result.complete((false, nil))
+
     return
 
-  let (succ, id) = extractUserIdFromToken(token)
-
-  if not succ:
-    return
-
-  return findById(parseOid(id))
+  return authenticateByToken(token)
 
 proc mandatoryAuth*(p: UserAcceptingHandler): Handler =
   ## Expresses mandatory authentication.

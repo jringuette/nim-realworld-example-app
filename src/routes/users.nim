@@ -4,9 +4,10 @@ import rosencrantz
 
 from ../model/user import User
 from ../service/userservice import login
-from ../service/auth import mandatoryAuth, issueToken
-from customhandler import unprocessableEntity
-import validation
+from ../service/authservice import issueToken
+from filter/auth import mandatoryAuth
+from filter/terminal import unprocessableEntity
+from filter/validation import validateBody
 
 proc loggedInUser(user: User): Handler =
   let resultJson = %*{

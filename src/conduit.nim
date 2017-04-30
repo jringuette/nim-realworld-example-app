@@ -3,7 +3,8 @@ import asyncdispatch, asynchttpserver, httpcore, logging
 from rosencrantz import serve, complete
 
 from routes/index import handler
-from service/auth import headerPrefix, jwtSecret, failureHandler
+from routes/filter/auth import headerPrefix, failureHandler
+from service/authservice import jwtSecret
 from model/database import connect
 
 # Log config

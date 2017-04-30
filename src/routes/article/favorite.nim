@@ -5,7 +5,7 @@ import system except delete
 import rosencrantz
 
 import ../../model/user
-from ../../service/auth import mandatoryAuth
+from ../filter/auth import mandatoryAuth
 
 
 let
