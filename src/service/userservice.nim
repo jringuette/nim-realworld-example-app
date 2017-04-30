@@ -5,6 +5,8 @@ import sam
 
 from ../model/user import User, findByEmail, findById, insert, initUser, update
 from ../util/mapping import mapNonNil
+from ../util/future import failed
+
 
 type
   UpdateUser* = ref object
@@ -34,11 +36,7 @@ proc login*(email, password: string): Future[User] {.async.} =
   if (userFut.failed):
     return await userFut
   elif (not checkPassword(password, userFut.read().hash, userFut.read().salt)):
-    let resultFut = newFuture[User]()
-
-    resultFut.fail(newException(UnmatchingPasswordError, "Passwords do not match!"))
-
-    return await resultFut
+    return await failed[User](newException(UnmatchingPasswordError, "Passwords do not match!"))
   else:
     return await userFut
 

@@ -3,6 +3,7 @@ import asynchttpserver, asyncdispatch, httpcore, strutils, tables, json, oids, o
 import jwt
 
 from ../model/user import User
+from ../util/future import failed
 from userservice import getById
 
 
@@ -46,7 +47,7 @@ proc issueToken*(userId: Oid): string =
 
 proc extractUserIdFromToken(token: JWT): Option[string] =
   ## Extracts the user id from the id field of the JWT claims.
-  ## Returns (true, id) upon success, (false, 0) otherwise.
+  ## Returns some(id) upon success, none() otherwise.
   result = none(string)
 
   if not token.claims.hasKey(ID_CLAIM):
@@ -77,19 +78,12 @@ proc authenticateByToken*(tokenString: string): Future[User] =
   let tokenOpt = verifyToken(tokenString)
 
   if tokenOpt.isNone():
-    result = newFuture[User]()
-
-    result.fail(newException(AuthenticationFailedError, "Token could not be verified!"))
-
-    return
+    return failed[User](newException(AuthenticationFailedError,
+                        "Token could not be verified!"))
 
   let idOpt = extractUserIdFromToken(tokenOpt.unsafeGet())
 
   if idOpt.isNone:
-    result = newFuture[User]()
-
-    result.fail(newException(InvalidUserIdError, "Malformed token claim!"))
-
-    return
+    return failed[User](newException(InvalidUserIdError, "Malformed token claim!"))
 
   return getById(parseOid(idOpt.unsafeGet()))

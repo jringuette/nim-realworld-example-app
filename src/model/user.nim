@@ -2,6 +2,9 @@ import asyncdispatch, oids, options
 
 import database, nimongo.bson
 
+import ../util/future
+
+
 type
   User* = ref object
     id*: Oid
@@ -65,28 +68,20 @@ proc findById*(id: Oid): Future[User] {.async.} =
 
   yield usersFut
 
-  let resultFut = newFuture[User]()
-
   if (usersFut.failed()) or (usersFut.read().len == 0):
-    resultFut.fail(newException(UserNotFoundError, "User not found"))
+    return await failed[User](newException(UserNotFoundError, "User not found"))
   else:
-    resultFut.complete(toUser(usersFut.read()[0]))
-
-  return await resultFut
+    return await completed[User](usersFut.read()[0])
 
 proc findByEmail*(email: string): Future[User] {.async.} =
   let usersFut = db[USERS].find(%*{ "email": email }).all()
 
   yield usersFut
 
-  let resultFut = newFuture[User]()
-
   if (usersFut.failed()) or (usersFut.read().len == 0):
-    resultFut.fail(newException(UserNotFoundError, "User not found"))
+    return await failed[User](newException(UserNotFoundError, "User not found"))
   else:
-    resultFut.complete(toUser(usersFut.read()[0]))
-
-  return await resultFut
+    return await completed[User](usersFut.read()[0])
 
 proc insert*(user: User): Future[User] {.async.} =
   if user.id == EMPTY_OID:

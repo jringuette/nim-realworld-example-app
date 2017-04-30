@@ -46,7 +46,7 @@ proc failureHandler*(handler: Handler) =
 
 proc extractTokenFromRequest(req: RequestRef): Option[string] =
   ## Extracts the JWT from the Authorization header.
-  ## Returns (true, JWT) upon success, (false, empty JWT) othwerwise.
+  ## Returns none() upon success, some(JWT) othwerwise.
   result = none(string)
 
   if not req.headers.hasKey(AUTH_HEADER):
@@ -71,7 +71,8 @@ proc extractTokenFromRequest(req: RequestRef): Option[string] =
 
 proc getRequestingUser(req: RequestRef): Future[User] =
   ## Gets the user associated with the request.
-  ## Returns (true, User) upon success, (false, nil) otherwise
+  ## Returns a completed Future upon success, fails otherwise with
+  ## NoTokenFoundError.
   let tokenOpt = extractTokenFromRequest(req)
 
   if tokenOpt.isNone:

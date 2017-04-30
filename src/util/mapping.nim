@@ -1,5 +1,6 @@
 import macros
 
+
 macro mapNonNil*(source, dest: typed; fields: openArray[string]): untyped =
   result = newNimNode(nnkStmtList, fields)
 
