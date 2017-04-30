@@ -3,7 +3,7 @@ import asynchttpserver, asyncdispatch, httpcore, strutils, tables, json, oids
 import jwt
 
 from ../model/user import User
-from userservice import getUserById
+from userservice import getById
 
 const
   ID_CLAIM = "id"
@@ -81,4 +81,4 @@ proc authenticateByToken*(tokenString: string): Future[(bool, User)] =
   if not valid:
     return
 
-  return getUserById(parseOid(id))
+  return getById(parseOid(id))

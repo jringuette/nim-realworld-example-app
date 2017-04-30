@@ -32,7 +32,7 @@ proc login*(email, password: string): Future[(bool, User)] {.async.} =
   else:
     return (true, user)
 
-proc getUserById*(id: Oid): Future[(bool, User)] =
+proc getById*(id: Oid): Future[(bool, User)] =
   return findById(id)
 
 proc generatePassword(password: string): (string, string) =
@@ -49,7 +49,7 @@ proc register*(email, username, password: string): Future[User] =
 
   return insert(user)
 
-proc updateUser*(barebones: UpdateUser, original: User): Future[User] =
+proc update*(barebones: UpdateUser, original: User): Future[User] =
   mapNonNil(
     source = barebones,
     dest   = original,
@@ -59,4 +59,4 @@ proc updateUser*(barebones: UpdateUser, original: User): Future[User] =
   if barebones.password != nil:
     (original.hash, original.salt) = generatePassword(barebones.password)
 
-  return update(original)
+  return user.update(original)
