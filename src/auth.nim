@@ -48,7 +48,7 @@ proc jwtSecret*(newSecret: string) =
   secret = newSecret
 
 proc failureHandler*(handler: Handler) =
-  ## Gets the failure handler that will be executed upon
+  ## Sets the failure handler that will be executed upon
   ## unauthorized access.
   failHandler = handler
 
