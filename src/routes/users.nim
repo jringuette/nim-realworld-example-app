@@ -4,7 +4,7 @@ import nre except get
 import rosencrantz
 
 from ../model/user import User, initUser
-from ../service/userservice import login, register, UpdateUser, readFromJson, updateUser
+from ../service/userservice import login, register, UpdateUser, readFromJson, update
 from ../service/authservice import issueToken
 from filter/auth import mandatoryAuth
 from filter/terminal import unprocessableEntity
