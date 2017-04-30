@@ -6,6 +6,7 @@ from ../model/user import User
 from ../service/userservice import login
 from ../service/auth import mandatoryAuth, issueToken
 from customhandler import unprocessableEntity
+import validation
 
 proc loggedInUser(user: User): Handler =
   let resultJson = %*{
@@ -18,24 +19,37 @@ proc loggedInUser(user: User): Handler =
 
   ok(resultJson)
 
+proc authValidator(body: JsonNode): Table[string, string] {.procvar.} =
+  result = initTable[string, string]()
+
+  if not body.hasKey("user"):
+    result.add("user", "missing field")
+    return
+
+  if not body["user"].hasKey("email"):
+    result.add("email", "can't be blank")
+  if not body["user"].hasKey("password"):
+    result.add("password", "can't be blank")
+
 let
   authentication =
     post ->
       path("/api/users/login") ->
         jsonBody do (body: JsonNode) -> auto:
-          scopeAsync do:
-            let
-              email = body["user"]["email"].str
-              password = body["user"]["password"].str
+          validateBody(authValidator, body) do -> auto:
+            scopeAsync do:
+              let
+                email = body["user"]["email"].str
+                password = body["user"]["password"].str
 
-            let (success, user) = await login(email, password)
+              let (success, user) = await login(email, password)
 
-            if not success:
-              let errors = {"email or password" : "is invalid"}.toTable()
+              if not success:
+                let errors = {"email or password" : "is invalid"}.toTable()
 
-              return unprocessableEntity(errors)
-            else:
-              return loggedInUser(user)
+                return unprocessableEntity(errors)
+              else:
+                return loggedInUser(user)
 
   registration =
     post ->
