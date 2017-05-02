@@ -24,7 +24,7 @@ proc loggedInUser(user: User): Handler =
     "bio": user.bio
   }
 
-  ok(resultJson)
+  ok(%{ "user": resultJson })
 
 proc authValidator(body: JsonNode): Table[string, string] {.procvar.} =
   result = initTable[string, string]()
