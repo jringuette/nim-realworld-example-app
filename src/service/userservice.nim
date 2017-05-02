@@ -3,7 +3,8 @@ import asyncdispatch, oids, options
 from bcrypt import hash, compare, genSalt
 import sam
 
-from ../model/user import User, findByEmail, findById, insert, initUser, update
+from ../model/user
+  import User, findByEmail, findById, findByUsername, insert, initUser, update
 from ../util/mapping import mapNonNil
 from ../util/future import failed
 
@@ -42,6 +43,9 @@ proc login*(email, password: string): Future[User] {.async.} =
 
 proc getById*(id: Oid): Future[User] =
   return findById(id)
+
+proc getByUsername*(username: string): Future[User] =
+  return findByUsername(username)
 
 proc generatePassword(password: string): (string, string) =
   let salt = genSalt(10)
