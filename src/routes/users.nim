@@ -15,7 +15,7 @@ let
   emailPattern    = re"""^\S+?\@\S+?\.\S+$"""
   usernamePattern = re"""^[a-zA-Z0-9]+$"""
 
-proc loggedInUser(user: User): Handler =
+proc respondWithUser(user: User): Handler =
   let resultJson = %*{
     "email": user.email,
     "token": issueToken(user.id),
@@ -95,7 +95,7 @@ let
 
                 return unprocessableEntity(errors)
               else:
-                return loggedInUser(userFut.read())
+                return respondWithUser(userFut.read())
 
   registration =
     post ->
@@ -110,13 +110,13 @@ let
 
               let user = await register(email, username, password)
 
-              return loggedInUser(user)
+              return respondWithUser(user)
 
   getCurrentUser =
     get ->
       path("/api/user") ->
         mandatoryAuth do (user: User) -> auto:
-          return loggedInUser(user)
+          return respondWithUser(user)
 
   updateUser =
     put ->
@@ -129,7 +129,7 @@ let
 
                 let updated = await update(barebones, user)
 
-                return loggedInUser(updated)
+                return respondWithUser(updated)
 
 let handler* =
   authentication ~
