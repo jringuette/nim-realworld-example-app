@@ -19,6 +19,10 @@ type
 
   UserNotFoundError* = object of Exception
 
+type
+  BsonWritable = concept x
+    %*(x) is Bson
+
 const
   USERS = "users"
   EMPTY_OID = Oid()
@@ -62,9 +66,9 @@ proc initUser*(): User =
   result.following = @[]
   result.favorites = @[]
 
-proc findById*(id: Oid): Future[User] {.async.} =
+proc findByUniqueField[T: BsonWritable](name: string, value: T): Future[User] {.async.}  =
   # find().one() fails if there are no results
-  var usersFut = db[USERS].find(%*{ "_id": id }).all()
+  var usersFut = db[USERS].find(%*{ name: value }).all()
 
   yield usersFut
 
@@ -72,16 +76,15 @@ proc findById*(id: Oid): Future[User] {.async.} =
     return await failed[User](newException(UserNotFoundError, "User not found"))
   else:
     return await completed[User](usersFut.read()[0])
+
+proc findById*(id: Oid): Future[User] {.async.} =
+  return await findByUniqueField("_id", id)
 
 proc findByEmail*(email: string): Future[User] {.async.} =
-  let usersFut = db[USERS].find(%*{ "email": email }).all()
+  return await findByUniqueField("email", email)
 
-  yield usersFut
-
-  if (usersFut.failed()) or (usersFut.read().len == 0):
-    return await failed[User](newException(UserNotFoundError, "User not found"))
-  else:
-    return await completed[User](usersFut.read()[0])
+proc findByUsername*(username: string): Future[User] {.async.} =
+  return await findByUniqueField("username", username)
 
 proc insert*(user: User): Future[User] {.async.} =
   if user.id == EMPTY_OID:
