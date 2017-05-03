@@ -13,6 +13,22 @@ type
     following*: bool
 
   ProfileNotFoundError* = object of Exception
+    # note that it's not exported
+    username: string
+
+template profileNotFound*(username: string): untyped =
+  var e: ref ProfileNotFoundError
+
+  new(e)
+
+  e.username = username
+  # Could use strutils.`%` but templates should not have
+  # unexpected dependencies.
+  e.msg = "Profile with username \"" & username & "\" not found."
+  e
+
+proc username*(err: ProfileNotFoundError): string =
+  err.username
 
 converter userToProfile(user: User): Profile =
   result.new
@@ -29,6 +45,6 @@ proc getByUsername*(username: string): Future[Profile] {.async.} =
   yield userFut
 
   if (userFut.failed()):
-    return await failed[Profile](newException(ProfileNotFoundError, "Profile Not Found!"))
+    return await failed[Profile](profileNotFound(username))
   else:
     return await completed(userFut.read())
