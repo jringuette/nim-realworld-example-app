@@ -65,7 +65,15 @@ let
         segment do (username: string) -> auto:
           pathChunk("/follow") ->
             mandatoryAuth do (user: User) -> auto:
-              ok("Unfollow User: " & username)
+              scopeAsync do:
+                let profileFut = unfollow(user, username)
+
+                yield profileFut
+
+                if profileFut.failed:
+                  return notFound(profileFut.readError().readMsg())
+                else:
+                  return respondWithProfile(profileFut.read())
 
 let handler* =
   getProfile ~
