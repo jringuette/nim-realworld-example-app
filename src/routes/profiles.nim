@@ -8,6 +8,7 @@ import rosencrantz
 
 import ../model/user
 import ../service/profileservice
+from ../util/exception import readMsg
 from filter/auth import mandatoryAuth, optionalAuth
 
 
@@ -33,7 +34,7 @@ let
               yield profileFut
 
               if profileFut.failed():
-                return notFound("Profile Not Found!")
+                return notFound(profileFut.readError().readMsg())
               else:
                 let profile = profileFut.read()
 
@@ -48,7 +49,15 @@ let
         segment do (username: string) -> auto:
           pathChunk("/follow") ->
             mandatoryAuth do (user: User) -> auto:
-              ok("Follow User: " & username)
+              scopeAsync do:
+                let profileFut = follow(user, username)
+
+                yield profileFut
+
+                if profileFut.failed:
+                  return notFound(profileFut.readError().readMsg())
+                else:
+                  return respondWithProfile(profileFut.read())
 
   unfollowUser =
     delete ->

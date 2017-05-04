@@ -4,7 +4,8 @@ import nre except get
 import rosencrantz
 
 from ../model/user import User, initUser
-from ../service/userservice import login, register, UpdateUser, readFromJson, update
+from ../service/userservice
+  import login, register, UpdateUser, readFromJson, updateWith
 from ../service/authservice import issueToken
 from filter/auth import mandatoryAuth
 from filter/terminal import unprocessableEntity
@@ -127,7 +128,7 @@ let
               scopeAsync do:
                 let barebones = readFromJson($body["user"], UpdateUser)
 
-                let updated = await update(barebones, user)
+                let updated = await updateWith(barebones, user)
 
                 return respondWithUser(updated)
 

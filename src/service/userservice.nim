@@ -61,7 +61,10 @@ proc register*(email, username, password: string): Future[User] =
 
   return insert(user)
 
-proc update*(barebones: UpdateUser, original: User): Future[User] =
+proc update*(u: User): Future[User] =
+  return user.update(u)
+
+proc updateWith*(barebones: UpdateUser, original: User): Future[User] =
   mapNonNil(
     source = barebones,
     dest   = original,
@@ -71,4 +74,4 @@ proc update*(barebones: UpdateUser, original: User): Future[User] =
   if barebones.password != nil:
     (original.hash, original.salt) = generatePassword(barebones.password)
 
-  return user.update(original)
+  return update(original)
