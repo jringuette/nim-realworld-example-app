@@ -3,7 +3,8 @@ import asyncdispatch, oids, options
 from bcrypt import hash, compare, genSalt
 import sam
 
-from ../model/user import User, findByEmail, findById, insert, initUser, update
+from ../model/user
+  import User, findByEmail, findById, findByUsername, insert, initUser, update
 from ../util/mapping import mapNonNil
 from ../util/future import failed
 
@@ -43,6 +44,9 @@ proc login*(email, password: string): Future[User] {.async.} =
 proc getById*(id: Oid): Future[User] =
   return findById(id)
 
+proc getByUsername*(username: string): Future[User] =
+  return findByUsername(username)
+
 proc generatePassword(password: string): (string, string) =
   let salt = genSalt(10)
 
@@ -57,7 +61,10 @@ proc register*(email, username, password: string): Future[User] =
 
   return insert(user)
 
-proc update*(barebones: UpdateUser, original: User): Future[User] =
+proc update*(u: User): Future[User] =
+  return user.update(u)
+
+proc updateWith*(barebones: UpdateUser, original: User): Future[User] =
   mapNonNil(
     source = barebones,
     dest   = original,
@@ -67,4 +74,4 @@ proc update*(barebones: UpdateUser, original: User): Future[User] =
   if barebones.password != nil:
     (original.hash, original.salt) = generatePassword(barebones.password)
 
-  return user.update(original)
+  return update(original)

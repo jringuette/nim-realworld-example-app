@@ -1,12 +1,26 @@
 # Although system is implicitly imported, we now want to
 # explicitly exclude the delete procedure
 import system except delete
+import json except delete
+import asyncdispatch, oids
 
 import rosencrantz
 
 import ../model/user
+import ../service/profileservice
+from ../util/exception import readMsg
 from filter/auth import mandatoryAuth, optionalAuth
 
+
+proc respondWithProfile(profile: Profile): Handler =
+  let profileJson = %*{
+    "username": profile.username,
+    "bio": profile.bio,
+    "image": profile.image,
+    "following": profile.following
+  }
+
+  ok(%{ "profile": profileJson })
 
 let
   getProfile =
@@ -14,7 +28,20 @@ let
       pathChunk("/api/profiles") ->
         segment do (username: string) -> auto:
           optionalAuth do (user: User) -> auto:
-            ok("Get Profile: " & username)
+            scopeAsync do:
+              let profileFut = getByUsername(username)
+
+              yield profileFut
+
+              if profileFut.failed():
+                return notFound(profileFut.readError().readMsg())
+              else:
+                let profile = profileFut.read()
+
+                if user != nil:
+                  profile.following = profile.id in user.following
+
+                return respondWithProfile(profile)
 
   followUser =
     post ->
@@ -22,7 +49,15 @@ let
         segment do (username: string) -> auto:
           pathChunk("/follow") ->
             mandatoryAuth do (user: User) -> auto:
-              ok("Follow User: " & username)
+              scopeAsync do:
+                let profileFut = follow(user, username)
+
+                yield profileFut
+
+                if profileFut.failed:
+                  return notFound(profileFut.readError().readMsg())
+                else:
+                  return respondWithProfile(profileFut.read())
 
   unfollowUser =
     delete ->
@@ -30,7 +65,15 @@ let
         segment do (username: string) -> auto:
           pathChunk("/follow") ->
             mandatoryAuth do (user: User) -> auto:
-              ok("Unfollow User: " & username)
+              scopeAsync do:
+                let profileFut = unfollow(user, username)
+
+                yield profileFut
+
+                if profileFut.failed:
+                  return notFound(profileFut.readError().readMsg())
+                else:
+                  return respondWithProfile(profileFut.read())
 
 let handler* =
   getProfile ~

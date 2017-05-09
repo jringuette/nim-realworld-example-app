@@ -4,7 +4,8 @@ import nre except get
 import rosencrantz
 
 from ../model/user import User, initUser
-from ../service/userservice import login, register, UpdateUser, readFromJson, update
+from ../service/userservice
+  import login, register, UpdateUser, readFromJson, updateWith
 from ../service/authservice import issueToken
 from filter/auth import mandatoryAuth
 from filter/terminal import unprocessableEntity
@@ -15,7 +16,7 @@ let
   emailPattern    = re"""^\S+?\@\S+?\.\S+$"""
   usernamePattern = re"""^[a-zA-Z0-9]+$"""
 
-proc loggedInUser(user: User): Handler =
+proc respondWithUser(user: User): Handler =
   let resultJson = %*{
     "email": user.email,
     "token": issueToken(user.id),
@@ -24,7 +25,7 @@ proc loggedInUser(user: User): Handler =
     "bio": user.bio
   }
 
-  ok(resultJson)
+  ok(%{ "user": resultJson })
 
 proc authValidator(body: JsonNode): Table[string, string] {.procvar.} =
   result = initTable[string, string]()
@@ -95,7 +96,7 @@ let
 
                 return unprocessableEntity(errors)
               else:
-                return loggedInUser(userFut.read())
+                return respondWithUser(userFut.read())
 
   registration =
     post ->
@@ -110,13 +111,13 @@ let
 
               let user = await register(email, username, password)
 
-              return loggedInUser(user)
+              return respondWithUser(user)
 
   getCurrentUser =
     get ->
       path("/api/user") ->
         mandatoryAuth do (user: User) -> auto:
-          return loggedInUser(user)
+          return respondWithUser(user)
 
   updateUser =
     put ->
@@ -127,9 +128,9 @@ let
               scopeAsync do:
                 let barebones = readFromJson($body["user"], UpdateUser)
 
-                let updated = await update(barebones, user)
+                let updated = await updateWith(barebones, user)
 
-                return loggedInUser(updated)
+                return respondWithUser(updated)
 
 let handler* =
   authentication ~
