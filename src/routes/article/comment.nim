@@ -14,28 +14,36 @@ let
   addComment =
     post ->
       pathChunk("/api/articles") ->
-        segment do (slug: string) -> auto:
-          pathChunk("/comments") ->
-            mandatoryAuth do (user: User) -> auto:
-              jsonBody do (body: JsonNode) -> auto:
-                ok("Add Comment: " & slug & " " & $body)
+        segment(proc(slug: string): auto =
+      pathChunk("/comments") ->
+        mandatoryAuth(proc(user: User): auto =
+        jsonBody(proc(body: JsonNode): auto =
+          ok("Add Comment: " & slug & " " & $body)
+        )
+      )
+    )
 
   deleteComment =
     delete ->
       pathChunk("/api/articles") ->
-        segment do (slug: string) -> auto:
-          pathChunk("/comments") ->
-            intSegment do (id: int) -> auto:
-              mandatoryAuth do (user: User) -> auto:
-                ok("Delete Comment: " & slug & " " & $id)
+        segment(proc(slug: string): auto =
+      pathChunk("/comments") ->
+        intSegment(proc(id: int): auto =
+        mandatoryAuth(proc(user: User): auto =
+          ok("Delete Comment: " & slug & " " & $id)
+        )
+      )
+    )
 
   getComments =
     get ->
       pathChunk("/api/articles") ->
-        segment do (slug: string) -> auto:
-          pathChunk("/comments") ->
-            optionalAuth do (user: User) -> auto:
-              ok("Get Comments: " & slug)
+        segment(proc(slug: string): auto =
+      pathChunk("/comments") ->
+        optionalAuth(proc(user: User): auto =
+        ok("Get Comments: " & slug)
+      )
+    )
 
 let handler* =
   addComment ~

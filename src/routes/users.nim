@@ -13,7 +13,7 @@ from filter/validation import validateBody
 
 
 let
-  emailPattern    = re"""^\S+?\@\S+?\.\S+$"""
+  emailPattern = re"""^\S+?\@\S+?\.\S+$"""
   usernamePattern = re"""^[a-zA-Z0-9]+$"""
 
 proc respondWithUser(user: User): Handler =
@@ -25,7 +25,7 @@ proc respondWithUser(user: User): Handler =
     "bio": user.bio
   }
 
-  ok(%{ "user": resultJson })
+  ok(%{"user": resultJson})
 
 proc authValidator(body: JsonNode): Table[string, string] {.procvar.} =
   result = initTable[string, string]()
@@ -69,68 +69,73 @@ proc updateValidator(body: JsonNode): Table[string, string] {.procvar.} =
     return
 
   if (body["user"].hasKey("email")) and
-     (not contains(body["user"]["email"].str, emailPattern)):
+      (not contains(body["user"]["email"].str, emailPattern)):
     result.add("email", "is invalid")
 
   if (body["user"].hasKey("username")) and
-     (not contains(body["user"]["username"].str, usernamePattern)):
+      (not contains(body["user"]["username"].str, usernamePattern)):
     result.add("username", "is invalid")
 
 let
   authentication =
     post ->
       path("/api/users/login") ->
-        jsonBody do (body: JsonNode) -> auto:
-          validateBody(authValidator, body) do -> auto:
-            scopeAsync do:
-              let
-                email = body{"user", "email"}.str
-                password = body{"user", "password"}.str
+        jsonBody(proc(body: JsonNode): auto =
+      validateBody(authValidator, body) do -> auto:
+        scopeAsync do:
+          let
+            email = body{"user", "email"}.str
+            password = body{"user", "password"}.str
 
-              let userFut = login(email, password)
+          let userFut = login(email, password)
 
-              yield userFut
+          yield userFut
 
-              if userFut.failed():
-                let errors = {"email or password" : "is invalid"}.toTable()
+          if userFut.failed():
+            let errors = {"email or password": "is invalid"}.toTable()
 
-                return unprocessableEntity(errors)
-              else:
-                return respondWithUser(userFut.read())
+            return unprocessableEntity(errors)
+          else:
+            return respondWithUser(userFut.read())
+    )
 
   registration =
     post ->
       path("/api/users") ->
-        jsonBody do (body: JsonNode) -> auto:
-          validateBody(registerValidator, body) do -> auto:
-            scopeAsync do:
-              let
-                email = body{"user", "email"}.str
-                username = body{"user", "username"}.str
-                password = body{"user", "password"}.str
+        jsonBody(proc(body: JsonNode): auto =
+      validateBody(registerValidator, body) do -> auto:
+        scopeAsync do:
+          let
+            email = body{"user", "email"}.str
+            username = body{"user", "username"}.str
+            password = body{"user", "password"}.str
 
-              let user = await register(email, username, password)
+          let user = await register(email, username, password)
 
-              return respondWithUser(user)
+          return respondWithUser(user)
+    )
 
   getCurrentUser =
     get ->
       path("/api/user") ->
-        mandatoryAuth do (user: User) -> auto:
-          return respondWithUser(user)
+        mandatoryAuth(proc(user: User): auto =
+      return respondWithUser(user)
+    )
 
   updateUser =
     put ->
       path("/api/user") ->
-        mandatoryAuth do (user: User) -> auto:
-          jsonBody do (body: JsonNode) -> auto:
-            validateBody(updateValidator, body) do -> auto:
-              scopeAsync do:
-                let barebones = readFromJson($body["user"], UpdateUser)
+        mandatoryAuth(proc(user: User): auto =
+      jsonBody(proc(body: JsonNode): auto =
+        validateBody(updateValidator, body) do -> auto:
+          scopeAsync do:
+            let barebones = readFromJson($body["user"], UpdateUser)
 
-                let updated = await updateWith(barebones, user)
+            let updated = await updateWith(barebones, user)
 
-                return respondWithUser(updated)
+            return respondWithUser(updated)
+      )
+    )
 
 let handler* =
   authentication ~

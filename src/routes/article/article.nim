@@ -16,44 +16,56 @@ let
   listArticles =
     get ->
       path("/api/articles") ->
-        optionalAuth do (user: User) -> auto:
-          queryString do (params: StringTableRef) -> auto:
-            ok("List Articles with query: " & $params)
+        optionalAuth(proc(user: User): auto =
+      queryString(proc(params: StringTableRef): auto =
+        ok("List Articles with query: " & $params)
+      )
+    )
 
   feedArticles =
     get ->
       path("/api/articles/feed") ->
-        mandatoryAuth do (user: User) -> auto:
-          queryString do (params: StringTableRef) -> auto:
-            ok("Feed Articles with query: " & $params)
+        mandatoryAuth(proc(user: User): auto =
+      queryString(proc(params: StringTableRef): auto =
+        ok("Feed Articles with query: " & $params)
+      )
+    )
 
   getArticle =
     get ->
       pathChunk("/api/articles") ->
-        segment do (slug: string) -> auto:
-          ok("Get Article: " & slug)
+        segment(proc(slug: string): auto =
+      ok("Get Article: " & slug)
+    )
 
   createArticle =
     post ->
       path("/api/articles") ->
-        mandatoryAuth do (user: User) -> auto:
-          jsonBody do (body: JsonNode) -> auto:
-            ok("Create Article: " & $body)
+        mandatoryAuth(proc(user: User): auto =
+      jsonBody(proc(body: JsonNode): auto =
+        ok("Create Article: " & $body)
+      )
+    )
 
   updateArticle =
     put ->
       pathChunk("/api/articles") ->
-        segment do (slug: string) -> auto:
-          mandatoryAuth do (user: User) -> auto:
-            jsonBody do (body: JsonNode) -> auto:
-              ok("Update Article: " & $body)
+        segment(proc(slug: string): auto =
+      mandatoryAuth(proc(user: User): auto =
+        jsonBody(proc(body: JsonNode): auto =
+          ok("Update Article: " & $body)
+        )
+      )
+    )
 
   deleteArticle =
     delete ->
       pathChunk("/api/articles") ->
-        segment do (slug: string) -> auto:
-          mandatoryAuth do (user: User) -> auto:
-            ok("Delete Article: " & slug)
+        segment(proc(slug: string): auto =
+      mandatoryAuth(proc(user: User): auto =
+        ok("Delete Article: " & slug)
+      )
+    )
 
 let handler* =
   listArticles ~

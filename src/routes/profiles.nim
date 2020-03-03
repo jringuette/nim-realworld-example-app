@@ -20,60 +20,66 @@ proc respondWithProfile(profile: Profile): Handler =
     "following": profile.following
   }
 
-  ok(%{ "profile": profileJson })
+  ok(%{"profile": profileJson})
 
 let
   getProfile =
     get ->
       pathChunk("/api/profiles") ->
-        segment do (username: string) -> auto:
-          optionalAuth do (user: User) -> auto:
-            scopeAsync do:
-              let profileFut = getByUsername(username)
+        segment(proc(username: string): auto =
+      optionalAuth(proc(user: User): auto =
+        scopeAsync do:
+          let profileFut = getByUsername(username)
 
-              yield profileFut
+          yield profileFut
 
-              if profileFut.failed():
-                return notFound(profileFut.readError().readMsg())
-              else:
-                let profile = profileFut.read()
+          if profileFut.failed():
+            return notFound(profileFut.readError().readMsg())
+          else:
+            let profile = profileFut.read()
 
-                if user != nil:
-                  profile.following = profile.id in user.following
+            if user != nil:
+              profile.following = profile.id in user.following
 
-                return respondWithProfile(profile)
+            return respondWithProfile(profile)
+      )
+    )
 
   followUser =
     post ->
       pathChunk("/api/profiles") ->
-        segment do (username: string) -> auto:
-          pathChunk("/follow") ->
-            mandatoryAuth do (user: User) -> auto:
-              scopeAsync do:
-                let profileFut = follow(user, username)
+        segment(proc(username: string): auto =
+      pathChunk("/follow") ->
+        mandatoryAuth(proc(user: User): auto =
+        scopeAsync do:
+          let profileFut = follow(user, username)
 
-                yield profileFut
+          yield profileFut
 
-                if profileFut.failed:
-                  return notFound(profileFut.readError().readMsg())
-                else:
-                  return respondWithProfile(profileFut.read())
+          if profileFut.failed:
+            return notFound(profileFut.readError().readMsg())
+          else:
+            return respondWithProfile(profileFut.read())
+      )
+    )
 
   unfollowUser =
     delete ->
       pathChunk("/api/profiles") ->
-        segment do (username: string) -> auto:
-          pathChunk("/follow") ->
-            mandatoryAuth do (user: User) -> auto:
-              scopeAsync do:
-                let profileFut = unfollow(user, username)
+        segment(proc(username: string): auto =
+      pathChunk("/follow") ->
+        mandatoryAuth(proc(user: User): auto =
+        scopeAsync do:
+          let profileFut = unfollow(user, username)
 
-                yield profileFut
+          yield profileFut
 
-                if profileFut.failed:
-                  return notFound(profileFut.readError().readMsg())
-                else:
-                  return respondWithProfile(profileFut.read())
+          if profileFut.failed:
+            return notFound(profileFut.readError().readMsg())
+          else:
+            return respondWithProfile(profileFut.read())
+      )
+    )
 
 let handler* =
   getProfile ~

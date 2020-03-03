@@ -12,18 +12,22 @@ let
   favoriteArticle =
     post ->
       pathChunk("/api/articles") ->
-        segment do (slug: string) -> auto:
-          pathChunk("/favorite") ->
-            mandatoryAuth do (user: User) -> auto:
-              ok("Favorite Article: " & slug)
+        segment(proc(slug: string): auto =
+      pathChunk("/favorite") ->
+        mandatoryAuth(proc(user: User): auto =
+        ok("Favorite Article: " & slug)
+      )
+    )
 
   unfavoriteArticle =
     delete ->
       pathChunk("/api/articles") ->
-        segment do (slug: string) -> auto:
-          pathChunk("/favorite") ->
-            mandatoryAuth do (user: User) -> auto:
-              ok("Unfavorite Article: " & slug)
+        segment(proc(slug: string): auto =
+      pathChunk("/favorite") ->
+        mandatoryAuth(proc(user: User): auto =
+        ok("Unfavorite Article: " & slug)
+      )
+    )
 
 let handler* =
   favoriteArticle ~

@@ -1,6 +1,6 @@
 import asyncdispatch
 
-import nimongo.bson, nimongo.mongo
+import nimongo/bson, nimongo/mongo
 
 export bson, mongo
 
